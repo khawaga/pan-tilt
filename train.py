@@ -9,7 +9,7 @@ if not os.path.isdir(path):
     os.mkdir(path)
 (im_width, im_height) = (112, 92)
 haar_cascade = cv2.CascadeClassifier(fn_haar)
-webcam = cv2.VideoCapture(0)
+webcam = cv2.VideoCapture(1)
 
 # The program loops until it has 20 images of the face.
 count = 0
