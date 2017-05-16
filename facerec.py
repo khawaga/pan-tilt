@@ -11,30 +11,30 @@ fn_name = sys.argv[1]
 # Part 1: Create fisherRecognizer
 print('Training...')
 # Create a list of images and a list of corresponding names
-(images, lables, names, id) = ([], [], {}, 0)
+(images, labels, names, id) = ([], [], {}, 0)
 for (subdirs, dirs, files) in os.walk(fn_dir):
     for subdir in dirs:
         names[id] = subdir
         subjectpath = os.path.join(fn_dir, subdir)
         for filename in os.listdir(subjectpath):
             path = subjectpath + '/' + filename
-            lable = id
+            label = id
             images.append(cv2.imread(path, 0))
-            lables.append(int(lable))
+            labels.append(int(label))
         id += 1
 (im_width, im_height) = (112, 92)
 
 # Create a Numpy array from the two lists above
-(images, lables) = [numpy.array(lis) for lis in [images, lables]]
+(images, labels) = [numpy.array(lis) for lis in [images, labels]]
 
 # OpenCV trains a model from the images
 # NOTE FOR OpenCV2: remove '.face'
 model = cv2.createFisherFaceRecognizer()
-model.train(images, lables)
+model.train(images, labels)
 
 # Part 2: Use fisherRecognizer on camera stream
 haar_cascade = cv2.CascadeClassifier(fn_haar)
-webcam = cv2.VideoCapture(0)
+webcam = cv2.VideoCapture(1)
 
 # added
 
@@ -42,7 +42,7 @@ servoTiltPos = 90
 servoPanPos = 90
 servoStep = 1
 
-ser = serial.Serial('/dev/ttyACM0', 9600)
+ser = serial.Serial('/dev/ttyACM0', 57600)
 
 # end added
 
@@ -76,7 +76,7 @@ while True:
         # [1]
         # attempt unknown
 
-        if prediction[1]<400:
+        if prediction[1]<1500:
             cv2.putText(frame,
             '%s - %.0f' % (names[prediction[0]],prediction[1]),
             (x-10, y-10), cv2.FONT_HERSHEY_PLAIN,1,(0, 255, 0))
@@ -107,23 +107,25 @@ while True:
 
             # Check face position in relation to screen mid
             if midFaceY < midScreenY - tolY:
-                if servoTiltPos <= 175:
-                    servoTiltPos += servoStep
-            elif midFaceY > midScreenY + tolY:
                 if servoTiltPos >= 5:
                     servoTiltPos -= servoStep
+            elif midFaceY > midScreenY + tolY:
+                if servoTiltPos <= 175:
+                    servoTiltPos += servoStep
             if midFaceX < midScreenX - tolX:
-                if servoPanPos <= 175:
-                    servoPanPos += servoStep
-            elif midFaceX > midScreenX + tolX:
                 if servoPanPos >= 5:
                     servoPanPos -= servoStep
+            elif midFaceX > midScreenX + tolX:
+                if servoPanPos <= 175:
+                    servoPanPos += servoStep
 
             print('Tilt pos' + str(servoTiltPos))
             print('Pan pos' + str(servoPanPos))
-            ser.write('t'+str(servoTiltPos)+'\n')
-            ser.write('p'+str(servoPanPos)+'\n')
-            sleep(0.1)
+            ser.write('t')
+            ser.write(chr(servoTiltPos))
+            ser.write('p')
+            ser.write(chr(servoPanPos))
+            sleep(0.05)
 
             # end, servo
 
