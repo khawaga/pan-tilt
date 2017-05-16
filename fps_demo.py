@@ -15,7 +15,10 @@ import sys
 
 # new
 
-#ser = serial.Serial('/dev/ttyACM0', 9600)
+servoTiltPos = 90
+servoPanPos = 90
+
+ser = serial.Serial('/dev/ttyACM0', 9600)
 faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 
 # construct the argument parse and parse the arguments
@@ -28,15 +31,22 @@ args = vars(ap.parse_args())
 
 # grab a pointer to the video stream and initialize the FPS counter
 print("[INFO] sampling frames from webcam...")
-stream = cv2.VideoCapture(0)
+stream = cv2.VideoCapture(1)
+width = stream.get(3)
+height = stream.get(4)
 fps = FPS().start()
+
+#
+
+midScreenX = width / 2
+midScreenY = height / 2
+servoStep = 1
+tol = 40
 
 # loop over some frames
 while fps._numFrames < args["num_frames"]:
-	# grab the frame from the stream and resize it to have a maximum
-	# width of 400 pixels
+	# grab the frame from the stream
 	(grabbed, frame) = stream.read()
-	frame = imutils.resize(frame, width=400)
 
 	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -48,14 +58,39 @@ while fps._numFrames < args["num_frames"]:
 		flags=cv2.cv.CV_HAAR_SCALE_IMAGE
 	)
 
+	# If a face is detected
+
+	if len(faces) > 0:
+		cv2.rectangle(frame, (faces[0][0], faces[0][1]), (faces[0][0]+faces[0][2], faces[0][1]+faces[0][3]), (0, 255, 0), 2)
+		midFaceX = faces[0][0] + (faces[0][2] / 2)
+		midFaceY = faces[0][1] + (faces[0][3] / 2)
+		# Check face position in relation to screen mid
+		if midFaceY < midScreenY - tol:
+			if servoTiltPos <= 175:
+				servoTiltPos += servoStep
+		elif midFaceY > midScreenY + tol:
+			if servoTiltPos >= 5:
+				servoTiltPos -= servoStep
+		if midFaceX < midScreenX - tol:
+			if servoPanPos <= 175:
+				servoPanPos += servoStep
+		elif midFaceX > midScreenX + tol:
+			if servoPanPos >= 5:
+				servoPanPos -= servoStep
+				
+		print('Tilt pos' + str(servoTiltPos))
+		print('Pan pos' + str(servoPanPos))
+		ser.write('t'+str(servoTiltPos)+'\n')
+		ser.write('p'+str(servoPanPos)+'\n')
+		sleep(0.1)
+
 	# Draw a rectangle around the faces
-	for (x, y, w, h) in faces:
-		cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-		send = (x*180)/400
-		print(x+w)
-		print(str(send))
-		#ser.write('p'+str(send)+'\n')
-		sleep(.1)
+	#for (x, y, w, h) in faces:
+	#	cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+	#	send = (x*180)/400
+	#	#print(str(send))
+	#	#ser.write('p'+str(send)+'\n')
+	#	sleep(.1)
 
 
 
@@ -63,13 +98,10 @@ while fps._numFrames < args["num_frames"]:
 	if args["display"] > 0:
 		cv2.imshow("Frame", frame)
 		key = cv2.waitKey(1) & 0xFF
-	
 
 	# update the FPS counter
 	fps.update()
 	
-	if cv2.waitKey(1) & 0xFF == ord('q'):
-        	break
 
 # stop the timer and display FPS information
 fps.stop()
