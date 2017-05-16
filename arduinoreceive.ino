@@ -1,34 +1,32 @@
 #include <Servo.h>
 Servo servoTilt, servoPan;
+int val;
 
 void setup() {
   servoTilt.attach(2);
   servoTilt.write(90);
   servoPan.attach(3);
   servoPan.write(90);
-  Serial.begin(9600); // set the baud rate
+  Serial.begin(57600); // set the baud rate
   Serial.println("Ready"); // print "Ready" once
 }
 void loop() {
- while(Serial.available()) {
-   char buffer[7];
-   char first = Serial.read();
-   if (first == 'p') {
-     Serial.readBytesUntil('\n',buffer,7);
-     int incomingValue = atoi(buffer);
-     if (incomingValue >= 0 && incomingValue <= 180) {
-       Serial.println(incomingValue);
-       servoPan.write(incomingValue);
-     }
+ if (Serial.available() > 0) {
+   char serialChar = Serial.read();
+   if (serialChar == 't') {
+     val = Serial.read();
+     Serial.print(serialChar);
+     Serial.print(val);
+     Serial.print('\n');
+     servoTilt.write(val);
    }
-   if (first == 't') {
-     Serial.readBytesUntil('\n',buffer,7);
-     int incomingValue = atoi(buffer);
-     if (incomingValue >= 0 && incomingValue <= 180) {
-       Serial.println(incomingValue);
-       servoTilt.write(incomingValue);
-     }
+   else if (serialChar == 'p') {
+     val = Serial.read();
+     Serial.print(serialChar);
+     Serial.print(val);
+     Serial.print('\n');
+     servoPan.write(val);
    }
-   delay(100); // delay for 1/10 of a second
  }
+ delay(50); // delay for 1/10 of a second
 }
